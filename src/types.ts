@@ -1,0 +1,54 @@
+export type Currency = 'EUR' | 'USD';
+export type PriceSource = 'cardmarket' | 'tcgplayer';
+
+export interface TcgPrice { low?: number; mid?: number; high?: number; market?: number; directLow?: number }
+export interface Card {
+  id: string;
+  name: string;
+  number: string;
+  rarity?: string;
+  supertype?: string;
+  types?: string[];
+  artist?: string;
+  hp?: string;
+  set: { id: string; name: string; series: string; printedTotal: number; total?: number; releaseDate: string; images?: { symbol: string; logo: string } };
+  images: { small: string; large: string };
+  tcgplayer?: { url?: string; updatedAt?: string; prices?: Record<string, TcgPrice> };
+  cardmarket?: { url?: string; updatedAt?: string; prices?: Record<string, number> };
+}
+export interface CardSet {
+  id: string; name: string; series: string; printedTotal: number; total: number; releaseDate: string;
+  images: { symbol: string; logo: string };
+}
+
+export type Condition = 'M' | 'NM' | 'EX' | 'GD' | 'LP' | 'PL' | 'PO';
+export type Variant = 'normal' | 'holofoil' | 'reverseHolofoil' | '1stEditionHolofoil' | '1stEditionNormal' | 'unlimitedHolofoil';
+export type GradingCompany = 'PSA' | 'BGS' | 'CGC' | 'SGC' | 'TAG' | 'ACE';
+
+export interface CollectionItem {
+  uid: string;
+  kind: 'card' | 'graded' | 'sealed';
+  addedAt: string;
+  quantity: number;
+  purchasePrice?: number; // per unit, in user currency
+  manualValue?: number;   // per unit override, in user currency
+  notes?: string;
+  folder?: string;
+  // card + graded
+  card?: Card;
+  variant?: Variant;
+  condition?: Condition;
+  language?: string;
+  // graded
+  company?: GradingCompany;
+  grade?: string;
+  cert?: string;
+  // sealed
+  sealedName?: string;
+  sealedType?: string;
+  sealedImage?: string;
+}
+
+export interface ValueSnapshot { date: string; value: number; cost: number }
+
+export interface Settings { currency: Currency; source: PriceSource; apiKey?: string }
