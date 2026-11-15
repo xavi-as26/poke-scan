@@ -10,13 +10,15 @@ export function SettingsPage({ store }: { store: Store }) {
   const [msg, setMsg] = useState('');
 
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify({ version: 1, items: store.items, history: store.history, wishlist: store.wishlist, settings }, null, 2)], { type: 'application/json' });
+    const { anthropicKey: _k, ...safeSettings } = settings;
+    const blob = new Blob([JSON.stringify({ version: 2, items: store.items, binders: store.binders, history: store.history, wishlist: store.wishlist, settings: safeSettings }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = `pokescan-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   };
   const exportCsv = () => {
-    const rows = [['tipo', 'nombre', 'expansion', 'numero', 'variante', 'estado', 'idioma', 'empresa', 'nota', 'cantidad', 'precio_compra', 'valor_manual']];
-    store.items.forEach(i => rows.push([i.kind, i.card?.name ?? i.sealedName ?? '', i.card?.set.name ?? '', i.card?.number ?? '', i.variant ?? '', i.condition ?? '',
+    const binderName = (id?: string) => store.binders.find(b => b.id === id)?.name ?? '';
+    const rows = [['tipo', 'carpeta', 'nombre', 'expansion', 'numero', 'variante', 'estado', 'idioma', 'empresa', 'nota', 'cantidad', 'precio_compra', 'valor_manual']];
+    store.items.forEach(i => rows.push([i.kind, binderName(i.binderId), i.card?.name ?? i.sealedName ?? '', i.card?.set.name ?? '', i.card?.number ?? '', i.variant ?? '', i.condition ?? '',
       i.language ?? '', i.company ?? '', i.grade ?? '', String(i.quantity), i.purchasePrice?.toString() ?? '', i.manualValue?.toString() ?? '']));
     const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -27,7 +29,7 @@ export function SettingsPage({ store }: { store: Store }) {
     try {
       const d = JSON.parse(await f.text());
       if (!Array.isArray(d.items)) throw new Error();
-      store.setItems(d.items); if (Array.isArray(d.history)) store.setHistory(d.history);
+      store.setItems(d.items); if (Array.isArray(d.history)) store.setHistory(d.history); if (Array.isArray(d.binders)) store.setBinders(d.binders);
       setMsg(`Importados ${d.items.length} objetos.`);
     } catch { setMsg('Archivo no válido.'); }
   };
@@ -66,6 +68,14 @@ export function SettingsPage({ store }: { store: Store }) {
         <p className="hint">Si la fuente elegida no tiene precio para una carta se usa la otra, convirtiendo la moneda con un tipo fijo aproximado.</p>
       </section>
       <section className="card-surface pad">
+        <h3>Reconocimiento con IA</h3>
+        <p className="muted small">Con tu propia API key de Anthropic, el escáner identifica cartas por la imagen (también japonesas) y puede leer una página entera de carpeta de una vez. Cada escaneo usa tu cuenta de Anthropic y tiene un coste.</p>
+        <label className="full">API key de Anthropic
+          <input type="password" autoComplete="off" value={settings.anthropicKey ?? ''} onChange={e => setSettings({ ...settings, anthropicKey: e.target.value.trim() || undefined })} placeholder="sk-ant-…" /></label>
+        <p className="hint">La clave se guarda solo en este navegador y se envía únicamente a api.anthropic.com. No la uses en un ordenador compartido. Puedes crear una clave con límite de gasto en console.anthropic.com.</p>
+        {settings.anthropicKey && <button className="btn ghost" onClick={() => setSettings({ ...settings, anthropicKey: undefined })}>Quitar clave</button>}
+      </section>
+      <section className="card-surface pad">
         <h3>Datos</h3>
         <p className="muted small">Tu colección se guarda solo en este navegador. Exporta una copia para no perderla.</p>
         <div className="btn-row">
@@ -74,7 +84,7 @@ export function SettingsPage({ store }: { store: Store }) {
           <button className="btn ghost" onClick={() => file.current?.click()}>Importar JSON</button>
           <input ref={file} type="file" accept="application/json" hidden onChange={e => importJson(e.target.files?.[0])} />
           <button className="btn ghost" onClick={loadDemo}>Cargar ejemplo</button>
-          <button className="btn danger" onClick={() => { if (confirm('¿Borrar toda la colección?')) { store.setItems([]); store.setHistory([]); store.setWishlist([]); } }}>Borrar todo</button>
+          <button className="btn danger" onClick={() => { if (confirm('¿Borrar toda la colección?')) { store.setItems([]); store.setHistory([]); store.setWishlist([]); store.setBinders([]); } }}>Borrar todo</button>
         </div>
         {msg && <p className="hint">{msg}</p>}
       </section>

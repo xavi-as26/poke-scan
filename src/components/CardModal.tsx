@@ -2,23 +2,36 @@ import { useEffect, useState } from 'react';
 import type { Card, CollectionItem, Condition, GradingCompany, Variant } from '../types';
 import type { Store } from '../store';
 import { cardPrice, fmt, priceTrend, variantsOf } from '../prices';
+import { getCard } from '../api';
+import { BinderSelect } from './BinderSelect';
 import { LineChart } from './Chart';
 
 const CONDITIONS: Condition[] = ['M', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
 const COMPANIES: GradingCompany[] = ['PSA', 'BGS', 'CGC', 'SGC', 'TAG', 'ACE'];
-const LANGS = ['EN', 'ES', 'DE', 'FR', 'IT', 'PT', 'JP', 'KR', 'ZH'];
+const LANGS = ['EN', 'ES', 'DE', 'FR', 'IT', 'PT', 'JA', 'KO', 'ZH'];
 const VARIANT_LABEL: Record<string, string> = {
   normal: 'Normal', holofoil: 'Holo', reverseHolofoil: 'Reverse Holo',
   '1stEditionHolofoil': '1ª Ed. Holo', '1stEditionNormal': '1ª Ed.', unlimitedHolofoil: 'Unlimited Holo',
 };
 
-export function CardModal({ card, store, onClose, editing }: { card: Card; store: Store; onClose: () => void; editing?: CollectionItem }) {
+export function CardModal({ card: initialCard, store, onClose, editing }: { card: Card; store: Store; onClose: () => void; editing?: CollectionItem }) {
   const { settings } = store;
+  const [card, setCard] = useState<Card>(initialCard);
+  const [loadErr, setLoadErr] = useState(false);
+  // Search results from TCGdex carry no prices or rarity: load the full card
+  useEffect(() => {
+    if (!initialCard.partial) return;
+    let live = true;
+    getCard(initialCard.id).then(c => { if (!live) return; if (c) setCard(c); else setLoadErr(true); });
+    return () => { live = false; };
+  }, [initialCard]);
+  useEffect(() => { if (!initialCard.partial) return; setVariant(v => variantsOf(card).includes(v) ? v : variantsOf(card)[0]); }, [card]);
   const [kind, setKind] = useState<'card' | 'graded'>(editing?.kind === 'graded' ? 'graded' : 'card');
   const [qty, setQty] = useState(editing?.quantity ?? 1);
-  const [variant, setVariant] = useState<Variant>(editing?.variant ?? variantsOf(card)[0]);
+  const [variant, setVariant] = useState<Variant>(editing?.variant ?? variantsOf(initialCard)[0]);
   const [condition, setCondition] = useState<Condition>(editing?.condition ?? 'NM');
-  const [language, setLanguage] = useState(editing?.language ?? 'EN');
+  const [language, setLanguage] = useState(editing?.language ?? (initialCard.lang ?? 'en').toUpperCase());
+  const [binderId, setBinderId] = useState(editing?.binderId);
   const [company, setCompany] = useState<GradingCompany>(editing?.company ?? 'PSA');
   const [grade, setGrade] = useState(editing?.grade ?? '10');
   const [cert, setCert] = useState(editing?.cert ?? '');
@@ -43,7 +56,7 @@ export function CardModal({ card, store, onClose, editing }: { card: Card; store
   const submit = () => {
     const data: Omit<CollectionItem, 'uid' | 'addedAt'> = {
       kind, card, quantity: Math.max(1, qty), variant, condition, language,
-      purchasePrice: num(purchase), manualValue: num(manual), notes: notes || undefined,
+      purchasePrice: num(purchase), manualValue: num(manual), notes: notes || undefined, binderId,
       ...(kind === 'graded' ? { company, grade, cert: cert || undefined } : {}),
     };
     if (editing) store.update(editing.uid, data); else store.add(data);
@@ -87,7 +100,9 @@ export function CardModal({ card, store, onClose, editing }: { card: Card; store
                   {card.tcgplayer?.url && <a href={card.tcgplayer.url} target="_blank" rel="noreferrer">Ver en TCGplayer ↗</a>}
                 </div>
               )}
-              {!Object.keys(cm).length && !Object.keys(tp).length && <div className="muted">No hay precios de mercado para esta carta.</div>}
+              {card.partial && !loadErr && <div className="muted"><span className="spin" /> Cargando precios…</div>}
+              {loadErr && <div className="muted">No se pudieron cargar los detalles de esta carta.</div>}
+              {!card.partial && !Object.keys(cm).length && !Object.keys(tp).length && <div className="muted">Sin precio de mercado para esta carta. Puedes poner un valor manual.</div>}
             </div>
 
             <div className="form">
@@ -111,6 +126,7 @@ export function CardModal({ card, store, onClose, editing }: { card: Card; store
                     {['10', '9.5', '9', '8.5', '8', '7', '6', '5', '4', '3', '2', '1'].map(g => <option key={g}>{g}</option>)}</select></label>
                   <label>Nº certificado<input value={cert} onChange={e => setCert(e.target.value)} placeholder="opcional" /></label>
                 </>)}
+                <BinderSelect store={store} value={binderId} onChange={setBinderId} />
                 <label>Precio compra ({settings.currency})<input inputMode="decimal" value={purchase} onChange={e => setPurchase(e.target.value)} placeholder="por unidad" /></label>
                 <label>Valor manual ({settings.currency})<input inputMode="decimal" value={manual} onChange={e => setManual(e.target.value)} placeholder={kind === 'graded' ? 'recomendado' : 'opcional'} /></label>
               </div>

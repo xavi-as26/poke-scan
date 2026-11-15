@@ -2,8 +2,14 @@ export type Currency = 'EUR' | 'USD';
 export type PriceSource = 'cardmarket' | 'tcgplayer';
 
 export interface TcgPrice { low?: number; mid?: number; high?: number; market?: number; directLow?: number }
+/** Catalogue language. 'en' uses pokemontcg.io, the rest use TCGdex. */
+export type CatalogLang = 'en' | 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt';
+
 export interface Card {
   id: string;
+  lang?: CatalogLang;
+  /** true when only the search summary was loaded (no prices yet) */
+  partial?: boolean;
   name: string;
   number: string;
   rarity?: string;
@@ -33,7 +39,7 @@ export interface CollectionItem {
   purchasePrice?: number; // per unit, in user currency
   manualValue?: number;   // per unit override, in user currency
   notes?: string;
-  folder?: string;
+  binderId?: string;
   // card + graded
   card?: Card;
   variant?: Variant;
@@ -49,6 +55,13 @@ export interface CollectionItem {
   sealedImage?: string;
 }
 
+export interface Binder { id: string; name: string; color: string }
+
 export interface ValueSnapshot { date: string; value: number; cost: number }
 
-export interface Settings { currency: Currency; source: PriceSource; apiKey?: string }
+export interface Settings {
+  currency: Currency; source: PriceSource; apiKey?: string;
+  catalogLang?: CatalogLang;
+  /** user's own Anthropic API key, used only by the AI scanner, stored in this browser */
+  anthropicKey?: string;
+}

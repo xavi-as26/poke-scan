@@ -14,10 +14,15 @@ export function Collection({ store, onOpen, onOpenCard, onAddSealed }: { store: 
   const [sort, setSort] = useState<Sort>('value');
   const [q, setQ] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [binder, setBinder] = useState<string>('all'); // 'all' | 'none' | binder id
+  const current = store.binders.find(b => b.id === binder);
+  const inBinder = (i: CollectionItem) => binder === 'all' || (binder === 'none' ? !i.binderId : i.binderId === binder);
+  const binderValue = (id: string) => items.filter(i => i.binderId === id).reduce((s, i) => s + itemValue(i, settings), 0);
+  const newBinder = () => { const n = prompt('Nombre de la carpeta'); if (n?.trim()) setBinder(store.addBinder(n).id); };
 
   const shown = useMemo(() => {
     const n = q.toLowerCase();
-    const xs = items.filter(i => (filter === 'all' || i.kind === filter) &&
+    const xs = items.filter(i => inBinder(i) && (filter === 'all' || i.kind === filter) &&
       (!n || (i.card?.name ?? i.sealedName ?? '').toLowerCase().includes(n) || (i.card?.set.name ?? '').toLowerCase().includes(n)));
     const name = (i: CollectionItem) => i.card?.name ?? i.sealedName ?? '';
     const cmp: Record<Sort, (a: CollectionItem, b: CollectionItem) => number> = {
@@ -28,7 +33,7 @@ export function Collection({ store, onOpen, onOpenCard, onAddSealed }: { store: 
       set: (a, b) => (b.card?.set.releaseDate ?? '').localeCompare(a.card?.set.releaseDate ?? '') || (parseInt(a.card?.number ?? '0') - parseInt(b.card?.number ?? '0')),
     };
     return xs.sort(cmp[sort]);
-  }, [items, filter, sort, q, settings]);
+  }, [items, filter, sort, q, settings, binder]);
 
   const total = shown.reduce((s, i) => s + itemValue(i, settings), 0);
 
@@ -45,6 +50,28 @@ export function Collection({ store, onOpen, onOpenCard, onAddSealed }: { store: 
         </select>
         <button className="btn ghost" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>{view === 'grid' ? '☰' : '▦'}</button>
       </div>
+      <div className="binders" role="tablist" aria-label="Carpetas">
+        <button role="tab" aria-selected={binder === 'all'} className={`binder ${binder === 'all' ? 'on' : ''}`} onClick={() => setBinder('all')}>
+          <span className="binder-dot" />Todas<small>{items.length}</small>
+        </button>
+        {store.binders.map(b => (
+          <button key={b.id} role="tab" aria-selected={binder === b.id} className={`binder ${binder === b.id ? 'on' : ''}`} onClick={() => setBinder(b.id)}>
+            <span className="binder-dot" style={{ background: b.color }} />{b.name}<small>{fmt(binderValue(b.id), settings.currency)}</small>
+          </button>
+        ))}
+        {store.binders.length > 0 && (
+          <button role="tab" aria-selected={binder === 'none'} className={`binder ${binder === 'none' ? 'on' : ''}`} onClick={() => setBinder('none')}>
+            <span className="binder-dot empty" />Sin carpeta
+          </button>
+        )}
+        <button className="binder add" onClick={newBinder}>+ Carpeta</button>
+      </div>
+      {current && (
+        <div className="binder-actions">
+          <button className="link" onClick={() => { const n = prompt('Nuevo nombre', current.name); if (n?.trim()) store.renameBinder(current.id, n); }}>Renombrar</button>
+          <button className="link danger-text" onClick={() => { if (confirm(`¿Borrar la carpeta "${current.name}"? Las cartas se quedan en tu colección.`)) { store.removeBinder(current.id); setBinder('all'); } }}>Borrar carpeta</button>
+        </div>
+      )}
       <div className="chips">
         {([['all', 'Todo'], ['card', 'Cartas'], ['graded', 'Gradeadas'], ['sealed', 'Sellado'], ['wish', `Deseos (${store.wishlist.length})`]] as const).map(([k, l]) =>
           <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{l}</button>)}
@@ -58,7 +85,7 @@ export function Collection({ store, onOpen, onOpenCard, onAddSealed }: { store: 
       ) : <>
       <div className="muted small summary">{shown.reduce((s, i) => s + i.quantity, 0)} objetos · {fmt(total, settings.currency)}</div>
 
-      {!shown.length && <div className="empty small-empty muted">No hay nada aquí todavía.</div>}
+      {!shown.length && <div className="empty small-empty muted">{current ? 'Esta carpeta está vacía. Abre una carta y elige la carpeta al guardarla.' : 'No hay nada aquí todavía.'}</div>}
 
       {view === 'grid' ? (
         <div className="grid">

@@ -1,6 +1,6 @@
 feature,area,priority,original,clone,notes
-Camera scan identifies card name and set,scanner,must,yes,partial,OCR reads name + number then searches; no image recognition; misses edition and set symbol
-Scan identifies edition (1st edition / unlimited / reverse),scanner,should,yes,no,
+Camera scan identifies card name and set,scanner,must,yes,yes,Claude vision with own key; OCR fallback
+Scan identifies edition (1st edition / unlimited / reverse),scanner,should,yes,partial,AI reads edition and maps it to a price variant; not verified on real cards
 Cardmarket market prices per card,prices,must,yes,yes,via pokemontcg.io
 TCGplayer market prices per card,prices,must,yes,yes,via pokemontcg.io
 eBay sold prices where available,prices,should,yes,no,needs eBay API with own key
@@ -12,16 +12,16 @@ Purchase price and profit/loss,portfolio,must,yes,yes,
 Search cards by name / number,catalogue,must,yes,yes,
 Card detail screen with prices,catalogue,must,yes,yes,
 Browse sets,catalogue,must,yes,yes,
-Set completion (what you still need),catalogue,should,yes,partial,progress bar only counts loaded cards; no missing-cards filter
+Set completion (what you still need),catalogue,should,yes,yes,full set loaded; Todas / Las tengo / Me faltan + missing value
 Add card with variant condition language quantity,collection,must,yes,yes,
 Graded cards (company grade cert),graded,must,yes,yes,
 Graded market prices,graded,should,yes,partial,estimated from raw price by multiplier or manual value
 Sealed products in collection,sealed,must,yes,partial,manual entry with own photo; no sealed catalogue or market price
 Sealed product catalogue with prices,sealed,should,yes,no,
-Japanese card support,catalogue,should,yes,no,pokemontcg.io has no JP; TCGdex does
-Multi-language cards (DE FR IT ES PT KR ZH),catalogue,should,yes,partial,language tag stored; no localized names or images
+Japanese card support,catalogue,should,yes,yes,TCGdex
+Multi-language cards (DE FR IT ES PT KR ZH),catalogue,should,yes,partial,catalogue in DE FR IT ES PT via TCGdex; no KR ZH
 Wishlist,collection,should,yes,yes,
-Multiple collections / binders,collection,should,yes,no,folder field exists but unused in UI
+Multiple collections / binders,collection,should,yes,yes,binders
 Notifications: new sets price changes value updates,notifications,could,yes,no,web push needs service worker + backend
 Share a card or a set,sharing,could,yes,no,
 Offline support,platform,should,yes,partial,data local; no service worker so app shell needs network

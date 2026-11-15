@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from './store';
-import type { Card, CardSet, CollectionItem } from './types';
+import type { Card, CardSet, CatalogLang, CollectionItem } from './types';
 import { refreshCards, setApiKey } from './api';
 import { itemCost, itemValue } from './prices';
 import { Dashboard } from './components/Dashboard';
@@ -30,6 +30,8 @@ export function App() {
   const [sealed, setSealed] = useState<{ editing?: CollectionItem } | null>(null);
   const [set, setSet] = useState<CardSet | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const lang = store.settings.catalogLang ?? 'en';
+  const setLang = (l: CatalogLang) => { store.setSettings(s => ({ ...s, catalogLang: l })); setSet(null); };
   const itemsRef = useRef(store.items); itemsRef.current = store.items;
 
   useEffect(() => { location.hash = tab; window.scrollTo(0, 0); }, [tab]);
@@ -75,9 +77,9 @@ export function App() {
         <h1 className="page-title">{TABS.find(t => t.id === tab)?.label}</h1>
         {tab === 'home' && <Dashboard store={store} onOpen={openItem} refreshing={refreshing} onRefresh={refresh} goSearch={() => setTab('search')} />}
         {tab === 'collection' && <Collection store={store} onOpen={openItem} onOpenCard={c => setCard({ card: c })} onAddSealed={() => setSealed({})} />}
-        {tab === 'scan' && <Scanner store={store} onOpen={c => setCard({ card: c })} />}
-        {tab === 'search' && <Search store={store} onOpen={c => setCard({ card: c })} set={set} clearSet={() => setSet(null)} goSets={() => setTab('sets')} />}
-        {tab === 'sets' && <Sets store={store} onPick={s => { setSet(s); setTab('search'); }} />}
+        {tab === 'scan' && <Scanner store={store} onOpen={c => setCard({ card: c })} goSettings={() => setTab('settings')} />}
+        {tab === 'search' && <Search store={store} onOpen={c => setCard({ card: c })} set={set} clearSet={() => setSet(null)} goSets={() => setTab('sets')} lang={lang} setLang={setLang} />}
+        {tab === 'sets' && <Sets store={store} onPick={s => { setSet(s); setTab('search'); }} lang={lang} setLang={setLang} />}
         {tab === 'settings' && <SettingsPage store={store} />}
       </main>
 

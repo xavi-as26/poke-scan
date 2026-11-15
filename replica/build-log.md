@@ -1,0 +1,15 @@
+# Build log
+
+Target: Mint (`replica/mint/recon.md`). Screenshots in `replica/mint/clone-screens/` at 390px and 1440px.
+
+| ID | date | status | missing | harder than expected |
+| --- | --- | --- | --- | --- |
+| S05 Binders | 2026-11-15 | done | drag-and-drop reordering, binder covers | — |
+| S06 Sets + set value | 2026-11-15 | done (EN) / partial (other languages) | set value in non-English catalogues: TCGdex has no bulk prices, so each card would need its own request | loading every card of a set instead of paged results |
+| S04 Card detail (multi-language) | 2026-11-15 | done | KR / ZH catalogues | TCGdex search results have no prices; the card is loaded in full when opened or added |
+| S03 Scanner + Deck Sweep | 2026-11-15 | done, verified with a mocked API | on-device image recognition; real-world accuracy not measured | the AI SDK tripled the bundle — moved to a lazy-loaded chunk (main JS 204 kB, AI 482 kB on demand) |
+
+Notes
+- TCGdex and the Anthropic API are blocked in the build sandbox; both were exercised end to end with mocked responses of the documented shape (Playwright, 390px and 1440px, no console errors). Needs a check against the real services.
+- The AI scanner uses the user's own Anthropic key, stored only in their browser and sent only to api.anthropic.com (`dangerouslyAllowBrowser`). Model `claude-opus-5-5`, effort `low`, server-side refusal fallback on, structured output via Zod. Keys are excluded from JSON export.
+- Not built yet (need a backend): price alerts, 90-day price history, sync across devices. Not built: AI grading assistant, public profile, AI market predictions.

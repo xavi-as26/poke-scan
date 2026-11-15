@@ -1,7 +1,7 @@
 feature,area,priority,original,clone,notes
-Camera scan identifies card,scanner,must,yes,partial,OCR name + number then search; Mint does on-device image recognition
-Fast on-device recognition,scanner,should,yes,partial,tesseract runs on-device but takes seconds; one review calls Mint slow too
-Deck Sweep: scan a whole binder page at once,scanner,should,yes,no,Mint's headline feature
+Camera scan identifies card,scanner,must,yes,yes,image recognition with Claude vision using the user's own Anthropic key; OCR fallback without key; verified against a mocked API only
+Fast on-device recognition,scanner,should,yes,partial,AI runs in the cloud (seconds); OCR fallback is on-device but slower
+Deck Sweep: scan a whole binder page at once,scanner,should,yes,yes,"""Página completa"": AI finds cards anywhere; OCR mode uses a 2x2/3x3/3x4 grid"
 Cardmarket and TCGplayer prices,prices,must,yes,yes,
 Price history chart per card (90 days),prices,should,yes,partial,only 30d/7d/1d/trend points; needs a backend storing daily prices
 Price alerts,prices,should,yes,no,needs push + backend
@@ -10,10 +10,10 @@ Portfolio total value,portfolio,must,yes,yes,
 Portfolio value history,portfolio,must,yes,yes,local daily snapshots
 Search cards,catalogue,must,yes,yes,
 Card detail with prices rarity set,catalogue,must,yes,yes,
-Browse all sets with set prices,catalogue,should,yes,partial,sets browsable; no total set value
-Japanese cards,catalogue,should,yes,no,pokemontcg.io has no JP; TCGdex does
+Browse all sets with set prices,catalogue,should,yes,yes,"set value, your value and missing value; EN sets only — other languages price per card"
+Japanese cards,catalogue,should,yes,yes,TCGdex catalogue (also ES FR DE IT PT)
 Sealed products,sealed,should,yes,partial,manual entry; no catalogue or prices
-Custom binders,collection,should,yes,no,
+Custom binders,collection,should,yes,yes,"create/rename/delete, filter, value per binder, pick on add and on scan"
 AI grading assistant (estimate grade from photos),grading,should,yes,no,Pro feature in Mint (50/month)
 Home screen widgets,platform,could,yes,skip,not possible for a web PWA
 No account or sign-up required,onboarding,must,yes,yes,
