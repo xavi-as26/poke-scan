@@ -10,7 +10,7 @@ export function SettingsPage({ store }: { store: Store }) {
   const [msg, setMsg] = useState('');
 
   const exportJson = () => {
-    const { anthropicKey: _k, ...safeSettings } = settings;
+    const { anthropicKey: _k, pricechartingToken: _t, ...safeSettings } = settings;
     const blob = new Blob([JSON.stringify({ version: 2, items: store.items, binders: store.binders, history: store.history, wishlist: store.wishlist, settings: safeSettings }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = `pokescan-${new Date().toISOString().slice(0, 10)}.json`; a.click();
@@ -65,6 +65,9 @@ export function SettingsPage({ store }: { store: Store }) {
         </div>
         <label className="full">API key de pokemontcg.io (opcional, sube el límite de peticiones)
           <input value={settings.apiKey ?? ''} onChange={e => setSettings({ ...settings, apiKey: e.target.value.trim() || undefined })} placeholder="xxxxxxxx-xxxx-…" /></label>
+        <label className="full">Token de PriceCharting (opcional, para precios reales de PSA 10 y PSA 9)
+          <input type="password" autoComplete="off" value={settings.pricechartingToken ?? ''} onChange={e => setSettings({ ...settings, pricechartingToken: e.target.value.trim() || undefined })} placeholder="token de la API" /></label>
+        <p className="hint">Sin token, el valor de PSA 10 es una estimación (precio sin gradear × 4). El token es de pago en pricecharting.com y se guarda solo en este navegador.</p>
         <p className="hint">Si la fuente elegida no tiene precio para una carta se usa la otra, convirtiendo la moneda con un tipo fijo aproximado.</p>
       </section>
       <section className="card-surface pad">

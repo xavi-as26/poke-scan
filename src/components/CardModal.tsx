@@ -4,6 +4,7 @@ import type { Store } from '../store';
 import { cardPrice, fmt, priceTrend, variantsOf } from '../prices';
 import { getCard } from '../api';
 import { BinderSelect } from './BinderSelect';
+import { Psa10Box } from './Psa10';
 import { LineChart } from './Chart';
 
 const CONDITIONS: Condition[] = ['M', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
@@ -100,6 +101,7 @@ export function CardModal({ card: initialCard, store, onClose, editing }: { card
                   {card.tcgplayer?.url && <a href={card.tcgplayer.url} target="_blank" rel="noreferrer">Ver en TCGplayer ↗</a>}
                 </div>
               )}
+              <Psa10Box card={card} settings={settings} variant={variant} />
               {card.partial && !loadErr && <div className="muted"><span className="spin" /> Cargando precios…</div>}
               {loadErr && <div className="muted">No se pudieron cargar los detalles de esta carta.</div>}
               {!card.partial && !Object.keys(cm).length && !Object.keys(tp).length && <div className="muted">Sin precio de mercado para esta carta. Puedes poner un valor manual.</div>}
@@ -132,7 +134,7 @@ export function CardModal({ card: initialCard, store, onClose, editing }: { card
               </div>
               <label className="full">Notas<input value={notes} onChange={e => setNotes(e.target.value)} placeholder="opcional" /></label>
               {kind === 'graded' && !manual && (
-                <p className="hint">Sin valor manual, el valor se estima a partir del precio raw ({fmt(cardPrice(card, settings, variant), settings.currency)}) con un multiplicador según la nota.</p>
+                <p className="hint">Sin valor manual se usa el precio real de PSA (PSA 10 y 9, si hay token de PriceCharting) o, si no, una estimación a partir del precio sin gradear ({fmt(cardPrice(card, settings, variant), settings.currency)}).</p>
               )}
               <button className="btn primary" onClick={submit} disabled={done}>{done ? '✓ Guardado' : editing ? 'Guardar cambios' : 'Añadir a la colección'}</button>
               {editing && <button className="btn danger" onClick={() => { store.remove(editing.uid); onClose(); }}>Eliminar</button>}

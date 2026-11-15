@@ -1,6 +1,6 @@
-## Parity: 77.3 / 100
+## Parity: 78.9 / 100
 
-features 77.3  (27 counted, must-haves 11 of 12 done)
+features 78.9  (27 counted, must-haves 11 of 12 done)
 
 Not shippable yet: 1 must-have features are not done.
 
@@ -11,10 +11,10 @@ Not shippable yet: 1 must-have features are not done.
 - platform                      50.0  (1 features)
 - prices                        58.3  (5 features)
 - scanner                       80.0  (2 features)
-- graded                        80.0  (2 features)
 - catalogue                     93.3  (6 features)
 - portfolio                    100.0  (3 features)
 - collection                   100.0  (3 features)
+- graded                       100.0  (2 features)
 - settings                     100.0  (1 features)
 
 ## Missing, in build order
@@ -23,7 +23,6 @@ Not shippable yet: 1 must-have features are not done.
 - [should] prices: eBay sold prices where available, no  (needs eBay API with own key)
 - [should] sealed: Sealed product catalogue with prices, no
 - [should] catalogue: Multi-language cards (DE FR IT ES PT KR ZH), partial  (catalogue in DE FR IT ES PT via TCGdex; no KR ZH)
-- [should] graded: Graded market prices, partial  (estimated from raw price by multiplier or manual value)
 - [should] platform: Offline support, partial  (data local; no service worker so app shell needs network)
 - [should] prices: Price history chart per card, partial  (only 30d/7d/1d/trend points from Cardmarket averages)
 - [should] scanner: Scan identifies edition (1st edition / unlimited / reverse), partial  (AI reads edition and maps it to a price variant; not verified on real cards)

@@ -1,4 +1,5 @@
 import type { Card, CollectionItem, Currency, PriceSource, Settings, Variant } from './types';
+import { cachedGraded } from './graded';
 
 // Static conversion used to unify sources; refreshed rates are not needed for a portfolio estimate.
 const USD_PER_EUR = 1.08;
@@ -37,8 +38,8 @@ export function cardPrice(card: Card | undefined, s: Settings, variant?: Variant
   }
 }
 
-// Rough multipliers for estimating graded values from the raw price when no manual value is set.
-function gradeMultiplier(grade?: string): number {
+// Rough multipliers for estimating graded values from the raw price when no real graded price is known.
+export function gradeMultiplier(grade?: string): number {
   const g = parseFloat(grade ?? '');
   if (isNaN(g)) return 1;
   if (g >= 10) return 4;
@@ -52,7 +53,13 @@ export function unitValue(item: CollectionItem, s: Settings): number {
   if (item.manualValue != null) return item.manualValue;
   if (item.kind === 'sealed') return item.purchasePrice ?? 0;
   const raw = cardPrice(item.card, s, item.variant) ?? 0;
-  if (item.kind === 'graded') return raw * gradeMultiplier(item.grade);
+  if (item.kind === 'graded') {
+    const real = item.card && item.company === 'PSA' ? cachedGraded(item.card.id) : undefined;
+    const g = parseFloat(item.grade ?? '');
+    const usd = g >= 10 ? real?.psa10 : g === 9 ? real?.psa9 : undefined;
+    if (usd != null) return convert(usd, 'USD', s.currency);
+    return raw * gradeMultiplier(item.grade);
+  }
   return raw * (CONDITION_FACTOR[item.condition ?? 'NM'] ?? 1);
 }
 export const itemValue = (i: CollectionItem, s: Settings) => unitValue(i, s) * i.quantity;
@@ -71,3 +78,9 @@ export function fmt(v: number | undefined, c: Currency) {
   return new Intl.NumberFormat(c === 'EUR' ? 'es-ES' : 'en-US', { style: 'currency', currency: c, maximumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
 }
 export const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+
+/** PSA 10 estimate from the raw price, used only when no real graded price is available. */
+export const psa10Estimate = (card: Card, s: Settings, variant?: Variant) => {
+  const raw = cardPrice(card, s, variant);
+  return raw != null ? raw * gradeMultiplier('10') : undefined;
+};

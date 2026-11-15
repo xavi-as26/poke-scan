@@ -5,6 +5,7 @@ import { getCard, searchCards } from '../api';
 import { cardPrice, fmt, variantsOf } from '../prices';
 import type { DetectedCard } from '../ai';
 import { BinderSelect } from './BinderSelect';
+import { Psa10Inline } from './Psa10';
 
 type OcrWorker = { recognize: (img: HTMLCanvasElement) => Promise<{ data: { text: string } }> };
 let workerP: Promise<OcrWorker> | null = null;
@@ -262,7 +263,10 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
                       )}
                     </> : <><b>Sin coincidencias</b><div className="muted small">Leído: {f.read.name || '¿?'} {f.read.number}</div></>}
                   </div>
-                  <div className="right">{c && !c.partial ? fmt(cardPrice(c, store.settings), store.settings.currency) : ''}</div>
+                  <div className="right">
+                    {c && !c.partial && <b>{fmt(cardPrice(c, store.settings, variantFor(c, f.read.edition)), store.settings.currency)}</b>}
+                    {c && <Psa10Inline card={c} settings={store.settings} variant={variantFor(c, f.read.edition)} />}
+                  </div>
                 </div>
               );
             })}

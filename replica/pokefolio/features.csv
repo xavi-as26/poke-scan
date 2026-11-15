@@ -15,7 +15,7 @@ Browse sets,catalogue,must,yes,yes,
 Set completion (what you still need),catalogue,should,yes,yes,full set loaded; Todas / Las tengo / Me faltan + missing value
 Add card with variant condition language quantity,collection,must,yes,yes,
 Graded cards (company grade cert),graded,must,yes,yes,
-Graded market prices,graded,should,yes,partial,estimated from raw price by multiplier or manual value
+Graded market prices,graded,should,yes,yes,real PSA 10 / PSA 9 via PriceCharting with own token (verified against a mocked API); estimate (raw x4) otherwise
 Sealed products in collection,sealed,must,yes,partial,manual entry with own photo; no sealed catalogue or market price
 Sealed product catalogue with prices,sealed,should,yes,no,
 Japanese card support,catalogue,should,yes,yes,TCGdex
