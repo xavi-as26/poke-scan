@@ -1,0 +1,26 @@
+feature,area,priority,original,clone,notes
+Camera scan identifies card,scanner,must,yes,partial,OCR name + number then search; Mint does on-device image recognition
+Fast on-device recognition,scanner,should,yes,partial,tesseract runs on-device but takes seconds; one review calls Mint slow too
+Deck Sweep: scan a whole binder page at once,scanner,should,yes,no,Mint's headline feature
+Cardmarket and TCGplayer prices,prices,must,yes,yes,
+Price history chart per card (90 days),prices,should,yes,partial,only 30d/7d/1d/trend points; needs a backend storing daily prices
+Price alerts,prices,should,yes,no,needs push + backend
+AI market predictions,prices,could,yes,no,
+Portfolio total value,portfolio,must,yes,yes,
+Portfolio value history,portfolio,must,yes,yes,local daily snapshots
+Search cards,catalogue,must,yes,yes,
+Card detail with prices rarity set,catalogue,must,yes,yes,
+Browse all sets with set prices,catalogue,should,yes,partial,sets browsable; no total set value
+Japanese cards,catalogue,should,yes,no,pokemontcg.io has no JP; TCGdex does
+Sealed products,sealed,should,yes,partial,manual entry; no catalogue or prices
+Custom binders,collection,should,yes,no,
+AI grading assistant (estimate grade from photos),grading,should,yes,no,Pro feature in Mint (50/month)
+Home screen widgets,platform,could,yes,skip,not possible for a web PWA
+No account or sign-up required,onboarding,must,yes,yes,
+Sync across devices (iCloud),platform,should,yes,no,data lives in one browser; export/import only
+Public collection profile,sharing,could,yes,no,a review says free users' cards are shared to a profile
+Free tier limits + Pro subscription,business,could,yes,skip,monetisation is decided in replica-launch
+Graded cards (company grade cert),graded,should,no,yes,not confirmed in Mint
+Wishlist,collection,could,no,yes,not confirmed in Mint
+Export / import collection,data,could,no,yes,
+Currency and price source choice,settings,could,no,yes,not confirmed in Mint
