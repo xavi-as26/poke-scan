@@ -29,7 +29,9 @@ If a field is unreadable, leave it empty rather than guessing.`;
 
 export class AiKeyError extends Error { name = 'AiKeyError'; }
 
-export async function detectCards(apiKey: string, jpegBase64: string): Promise<DetectedCard[]> {
+export type AiSpeed = 'fast' | 'accurate';
+
+export async function detectCards(apiKey: string, jpegBase64: string, speed: AiSpeed = 'fast'): Promise<DetectedCard[]> {
   const client = new Anthropic({
     apiKey,
     // The key belongs to the person using the app and never leaves their browser except to api.anthropic.com.
@@ -37,11 +39,12 @@ export async function detectCards(apiKey: string, jpegBase64: string): Promise<D
   });
   try {
     const res = await client.beta.messages.parse({
-      model: 'claude-opus-5-5',
+      // Fast: Haiku 5.5 (quicker and far cheaper). Accurate: Opus 5.5 with server-side refusal fallback.
+      ...(speed === 'fast'
+        ? { model: 'claude-haiku-5-5' }
+        : { model: 'claude-opus-5-5', betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
       max_tokens: 16000,
       output_config: { effort: 'low', format: betaZodOutputFormat(Detection) },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       messages: [{
         role: 'user',
         content: [

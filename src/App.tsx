@@ -11,15 +11,16 @@ import { Sets } from './components/Sets';
 import { SettingsPage } from './components/SettingsPage';
 import { CardModal } from './components/CardModal';
 import { SealedModal } from './components/SealedModal';
+import { Icon } from './components/Icon';
 
 type Tab = 'home' | 'collection' | 'scan' | 'search' | 'sets' | 'settings';
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home', label: 'Portfolio', icon: '◔' },
-  { id: 'collection', label: 'Colección', icon: '▦' },
-  { id: 'scan', label: 'Escanear', icon: '⌖' },
-  { id: 'search', label: 'Buscar', icon: '⌕' },
-  { id: 'sets', label: 'Expansiones', icon: '❖' },
-  { id: 'settings', label: 'Ajustes', icon: '⚙' },
+  { id: 'home', label: 'Portfolio', icon: 'portfolio' },
+  { id: 'collection', label: 'Colección', icon: 'collection' },
+  { id: 'scan', label: 'Escanear', icon: 'scan' },
+  { id: 'search', label: 'Buscar', icon: 'search' },
+  { id: 'sets', label: 'Expansiones', icon: 'sets' },
+  { id: 'settings', label: 'Ajustes', icon: 'settings' },
 ];
 const REFRESH_KEY = 'pokescan.lastRefresh';
 
@@ -34,7 +35,13 @@ export function App() {
   const setLang = (l: CatalogLang) => { store.setSettings(s => ({ ...s, catalogLang: l })); setSet(null); };
   const itemsRef = useRef(store.items); itemsRef.current = store.items;
 
-  useEffect(() => { location.hash = tab; window.scrollTo(0, 0); }, [tab]);
+  useEffect(() => { if (location.hash.slice(1) !== tab) location.hash = tab; window.scrollTo(0, 0); }, [tab]);
+  // Back/forward buttons and links change the hash: follow them
+  useEffect(() => {
+    const onHash = () => { const t = location.hash.slice(1) as Tab; if (TABS.some(x => x.id === t)) { setTab(t); setCard(null); setSealed(null); } };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   useEffect(() => setApiKey(store.settings.apiKey), [store.settings.apiKey]);
 
   // Daily value snapshot whenever values change
@@ -86,7 +93,7 @@ export function App() {
       <nav className="bottom-nav">
         {TABS.filter(t => t.id !== 'sets').map(t => (
           <button key={t.id} className={`${tab === t.id ? 'on' : ''} ${t.id === 'scan' ? 'fab' : ''}`} onClick={() => setTab(t.id)}>
-            <span className="ico">{t.icon}</span><span>{t.label}</span>
+            <span className="ico"><Icon name={t.icon} size={t.id === 'scan' ? 26 : 22} /></span><span>{t.label}</span>
           </button>
         ))}
       </nav>

@@ -19,7 +19,20 @@ const escape = (s: string) => s.replace(/"/g, '\\"');
 
 export interface SearchOpts { lang?: CatalogLang; name?: string; number?: string; setId?: string; page?: number; pageSize?: number; orderBy?: string }
 
+// Short-lived cache: rescanning the same card or paging back should not hit the network again
+const searchCache = new Map<string, { at: number; r: { cards: Card[]; total: number } }>();
+const SEARCH_TTL = 5 * 60_000;
+
 export async function searchCards(o: SearchOpts): Promise<{ cards: Card[]; total: number }> {
+  const key = JSON.stringify([o.lang ?? 'en', o.name?.trim().toLowerCase(), o.number?.trim(), o.setId, o.page, o.pageSize, o.orderBy]);
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < SEARCH_TTL) return hit.r;
+  const r = await searchCardsUncached(o);
+  if (!offlineMode) searchCache.set(key, { at: Date.now(), r });
+  return r;
+}
+
+async function searchCardsUncached(o: SearchOpts): Promise<{ cards: Card[]; total: number }> {
   if (o.lang && o.lang !== 'en') {
     try { const r = await tdSearch(o.lang, o); offlineMode = false; return r; }
     catch { offlineMode = true; return { cards: [], total: 0 }; }

@@ -7,9 +7,30 @@ import type { DetectedCard } from '../ai';
 import { BinderSelect } from './BinderSelect';
 import { Psa10Inline } from './Psa10';
 
-type OcrWorker = { recognize: (img: HTMLCanvasElement) => Promise<{ data: { text: string } }> };
-let workerP: Promise<OcrWorker> | null = null;
-const getWorker = () => (workerP ??= import('tesseract.js').then(t => t.createWorker('eng') as unknown as Promise<OcrWorker>));
+// Two OCR workers behind a scheduler so the name and number of a card (or several cards) are read in parallel.
+type OcrScheduler = { addJob: (action: 'recognize', img: HTMLCanvasElement) => Promise<{ data: { text: string } }> };
+let ocrP: Promise<OcrScheduler> | null = null;
+const getOcr = () => (ocrP ??= import('tesseract.js').then(async T => {
+  const scheduler = T.createScheduler();
+  const workers = await Promise.all([0, 1].map(async () => {
+    const w = await T.createWorker('eng');
+    await w.setParameters({ tessedit_pageseg_mode: T.PSM.SINGLE_BLOCK });
+    return w;
+  }));
+  workers.forEach(w => scheduler.addWorker(w));
+  return scheduler as unknown as OcrScheduler;
+}));
+const ocr = async (img: HTMLCanvasElement) => (await (await getOcr()).addJob('recognize', img)).data.text;
+
+/** Run fn over items with at most `limit` in flight, keeping order. */
+async function pool<T, R>(items: T[], limit: number, fn: (x: T, i: number) => Promise<R>, onEach?: (r: R, i: number) => void) {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const i = next++; out[i] = await fn(items[i], i); onEach?.(out[i], i); }
+  }));
+  return out;
+}
 
 const CARD_RATIO = 63 / 88;
 const PAGE_RATIO = 3 / 4;
@@ -21,7 +42,7 @@ interface Box { x: number; y: number; w: number; h: number }
 interface Found {
   key: string; box: Box; thumb: string;
   read: { name: string; number: string; lang: CatalogLang | 'other'; edition: DetectedCard['edition']; confidence?: string };
-  candidates: Card[]; pick: number; selected: boolean;
+  candidates: Card[]; pick: number; selected: boolean; pending?: boolean;
 }
 
 function crop(src: HTMLCanvasElement, b: Box, scale = 1, filter = '') {
@@ -87,6 +108,13 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
   const [binderId, setBinderId] = useState<string>();
   const [added, setAdded] = useState(0);
   const ai = !!store.settings.anthropicKey;
+  const speed = store.settings.aiSpeed ?? 'fast';
+
+  // Warm up whatever the next scan will need, so the first scan does not pay for downloads
+  useEffect(() => {
+    if (ai) import('../ai').catch(() => {});
+    else getOcr().catch(() => { ocrP = null; });
+  }, [ai]);
 
   const start = async () => {
     setCamErr('');
@@ -106,38 +134,45 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
       if (ai) {
         setStatus(mode === 'page' ? 'La IA está buscando las cartas de la página…' : 'La IA está identificando la carta…');
         const { detectCards, canvasToJpeg } = await import('../ai');
-        const det = await detectCards(store.settings.anthropicKey!, canvasToJpeg(canvas));
+        // A single card needs far fewer pixels than a binder page: smaller upload, fewer image tokens
+        const det = await detectCards(store.settings.anthropicKey!, canvasToJpeg(canvas, mode === 'single' ? 1024 : 1568), speed);
         reads = det.map(d => ({
           box: d.box, name: d.name, englishName: d.english_name, number: d.number, total: d.printed_total, setName: d.set_name,
           lang: (['en', 'ja', 'es', 'fr', 'de', 'it', 'pt'].includes(d.language) ? d.language : 'other') as CatalogLang | 'other',
           edition: d.edition, confidence: d.confidence,
         }));
       } else {
-        setStatus('Cargando el lector de texto…');
-        const w = await getWorker();
+        setStatus('Leyendo nombre y número…');
         const cols = grid === 4 ? 2 : 3, rows = mode === 'single' ? 1 : grid / cols;
         const cells: Box[] = mode === 'single' ? [{ x: 0, y: 0, w: 1, h: 1 }]
           : Array.from({ length: grid }, (_, i) => ({ x: (i % cols) / cols, y: Math.floor(i / cols) / rows, w: 1 / cols, h: 1 / rows }));
-        for (const [i, cell] of cells.entries()) {
-          setStatus(cells.length > 1 ? `Leyendo carta ${i + 1} de ${cells.length}…` : 'Leyendo nombre y número…');
-          const nameText = (await w.recognize(crop(canvas, sub(cell, { x: 0.05, y: 0.02, w: 0.72, h: 0.09 }), 2, 'grayscale(1) contrast(1.6)'))).data.text;
-          const bottom = (await w.recognize(crop(canvas, sub(cell, { x: 0, y: 0.88, w: 1, h: 0.12 }), 3, 'grayscale(1) contrast(1.6)'))).data.text;
-          const name = parseName(nameText), n = parseNumber(bottom);
+        let done = 0;
+        const cellReads = await Promise.all(cells.map(async cell => {
+          const [nameText, bottom] = await Promise.all([
+            ocr(crop(canvas, sub(cell, { x: 0.05, y: 0.02, w: 0.72, h: 0.09 }), 2, 'grayscale(1) contrast(1.6)')),
+            ocr(crop(canvas, sub(cell, { x: 0, y: 0.88, w: 1, h: 0.12 }), 2, 'grayscale(1) contrast(1.6)')),
+          ]);
+          if (cells.length > 1) setStatus(`Leídas ${++done} de ${cells.length} cartas…`);
+          return { cell, name: parseName(nameText), n: parseNumber(bottom) };
+        }));
+        cellReads.forEach(({ cell, name, n }) => {
           if (name || n.number) reads.push({ box: cell, name, number: n.number, total: n.total, lang: 'en', edition: 'unknown' });
-        }
+        });
       }
       if (!reads.length) { setStatus('No se ha encontrado ninguna carta. Prueba con más luz y la carta centrada.'); return; }
       setStatus(`Buscando ${reads.length === 1 ? 'la carta' : `${reads.length} cartas`} en el catálogo…`);
-      const out: Found[] = [];
-      for (const [i, r] of reads.entries()) {
-        const candidates = await match(r).catch(() => []);
-        out.push({
-          key: `${Date.now()}-${i}`, box: r.box, thumb: crop(canvas, r.box, 0.5).toDataURL('image/jpeg', 0.7),
-          read: { name: r.name, number: r.total ? `${r.number}/${r.total}` : r.number, lang: r.lang, edition: r.edition, confidence: r.confidence },
-          candidates, pick: 0, selected: candidates.length > 0,
-        });
+      // Show every detected card right away, then fill in matches as they arrive (4 lookups at a time)
+      const stamp = Date.now();
+      const out: Found[] = reads.map((r, i) => ({
+        key: `${stamp}-${i}`, box: r.box, thumb: crop(canvas, r.box, 0.5).toDataURL('image/jpeg', 0.7),
+        read: { name: r.name, number: r.total ? `${r.number}/${r.total}` : r.number, lang: r.lang, edition: r.edition, confidence: r.confidence },
+        candidates: [], pick: 0, selected: false, pending: true,
+      }));
+      setFound([...out]);
+      await pool(reads, 4, r => match(r).catch(() => [] as Card[]), (candidates, i) => {
+        out[i] = { ...out[i], candidates, selected: candidates.length > 0, pending: false };
         setFound([...out]);
-      }
+      });
       setStatus('');
       if (mode === 'single' && out.length === 1 && out[0].candidates.length === 1) onOpen(out[0].candidates[0]);
     } catch (e) {
@@ -197,7 +232,7 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
         )}
       </div>
       <div className={`engine ${ai ? 'on' : ''}`}>
-        {ai ? <>✦ Reconocimiento con IA activado: identifica la imagen completa, cartas japonesas incluidas.</>
+        {ai ? <>✦ Reconocimiento con IA · {speed === 'fast' ? 'modo rápido' : 'modo preciso'}. <button className="link" onClick={goSettings}>Cambiar</button></>
           : <>Modo básico: lee el nombre y el número con OCR. {mode === 'page' && 'Coloca las cartas alineadas con la cuadrícula. '}
             <button className="link" onClick={goSettings}>Activar IA en Ajustes</button></>}
       </div>
@@ -215,7 +250,7 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
           <div className="shot">
             <img src={shot} alt="Foto analizada" />
             {found.map((f, i) => (
-              <span key={f.key} className={`box ${f.candidates.length ? '' : 'miss'}`} style={{ left: `${f.box.x * 100}%`, top: `${f.box.y * 100}%`, width: `${f.box.w * 100}%`, height: `${f.box.h * 100}%` }}>{i + 1}</span>
+              <span key={f.key} className={`box ${f.pending ? 'pending' : f.candidates.length ? '' : 'miss'}`} style={{ left: `${f.box.x * 100}%`, top: `${f.box.y * 100}%`, width: `${f.box.w * 100}%`, height: `${f.box.h * 100}%` }}>{i + 1}</span>
             ))}
           </div>
         ) : (
@@ -261,7 +296,7 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
                           {f.candidates.map((o, k) => <option key={o.id} value={k}>{o.name} — {o.set.name} {o.number}</option>)}
                         </select>
                       )}
-                    </> : <><b>Sin coincidencias</b><div className="muted small">Leído: {f.read.name || '¿?'} {f.read.number}</div></>}
+                    </> : f.pending ? <><b className="muted">Buscando…</b><div className="muted small">Leído: {f.read.name || '¿?'} {f.read.number}</div></> : <><b>Sin coincidencias</b><div className="muted small">Leído: {f.read.name || '¿?'} {f.read.number}</div></>}
                   </div>
                   <div className="right">
                     {c && !c.partial && <b>{fmt(cardPrice(c, store.settings, variantFor(c, f.read.edition)), store.settings.currency)}</b>}

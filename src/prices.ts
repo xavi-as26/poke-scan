@@ -75,9 +75,10 @@ export function priceTrend(card: Card, s: Settings): { label: string; value: num
 
 export function fmt(v: number | undefined, c: Currency) {
   if (v == null || isNaN(v)) return '—';
-  return new Intl.NumberFormat(c === 'EUR' ? 'es-ES' : 'en-US', { style: 'currency', currency: c, maximumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
+  // useGrouping 'always': es-ES leaves 4-digit numbers ungrouped by default ("5613 €")
+  return new Intl.NumberFormat(c === 'EUR' ? 'es-ES' : 'en-US', { style: 'currency', currency: c, maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 2, useGrouping: 'always' } as unknown as Intl.NumberFormatOptions).format(v);
 }
-export const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+export const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 /** PSA 10 estimate from the raw price, used only when no real graded price is available. */
 export const psa10Estimate = (card: Card, s: Settings, variant?: Variant) => {

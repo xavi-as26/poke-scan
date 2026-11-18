@@ -75,6 +75,13 @@ export function SettingsPage({ store }: { store: Store }) {
         <p className="muted small">Con tu propia API key de Anthropic, el escáner identifica cartas por la imagen (también japonesas) y puede leer una página entera de carpeta de una vez. Cada escaneo usa tu cuenta de Anthropic y tiene un coste.</p>
         <label className="full">API key de Anthropic
           <input type="password" autoComplete="off" value={settings.anthropicKey ?? ''} onChange={e => setSettings({ ...settings, anthropicKey: e.target.value.trim() || undefined })} placeholder="sk-ant-…" /></label>
+        <div className="seg" role="radiogroup" aria-label="Velocidad del reconocimiento">
+          <button role="radio" aria-checked={(settings.aiSpeed ?? 'fast') === 'fast'} className={(settings.aiSpeed ?? 'fast') === 'fast' ? 'on' : ''} onClick={() => setSettings({ ...settings, aiSpeed: 'fast' })}>Rápido</button>
+          <button role="radio" aria-checked={settings.aiSpeed === 'accurate'} className={settings.aiSpeed === 'accurate' ? 'on' : ''} onClick={() => setSettings({ ...settings, aiSpeed: 'accurate' })}>Preciso</button>
+        </div>
+        <p className="hint">{(settings.aiSpeed ?? 'fast') === 'fast'
+          ? 'Rápido usa Claude Haiku 5.5: responde antes y cuesta mucho menos por escaneo. Puede fallar más con cartas gastadas, japonesas o con mala luz.'
+          : 'Preciso usa Claude Opus 5.5: tarda más y cuesta más por escaneo, pero acierta mejor en casos difíciles.'}</p>
         <p className="hint">La clave se guarda solo en este navegador y se envía únicamente a api.anthropic.com. No la uses en un ordenador compartido. Puedes crear una clave con límite de gasto en console.anthropic.com.</p>
         {settings.anthropicKey && <button className="btn ghost" onClick={() => setSettings({ ...settings, anthropicKey: undefined })}>Quitar clave</button>}
       </section>

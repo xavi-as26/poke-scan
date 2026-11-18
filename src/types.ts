@@ -64,6 +64,8 @@ export interface Settings {
   catalogLang?: CatalogLang;
   /** user's own Anthropic API key, used only by the AI scanner, stored in this browser */
   anthropicKey?: string;
+  /** 'fast' = Claude Haiku 5.5, 'accurate' = Claude Opus 5.5 */
+  aiSpeed?: 'fast' | 'accurate';
   /** user's own PriceCharting API token, for real PSA 10 / PSA 9 prices */
   pricechartingToken?: string;
 }
