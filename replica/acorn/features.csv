@@ -1,0 +1,22 @@
+feature,area,priority,original,clone,notes
+Scan a card with the camera and identify it,scanner,must,yes,yes,Claude vision with own key; OCR fallback
+Scan Western-language and Japanese cards,scanner,must,yes,yes,AI reads any language; catalogue EN + JA ES FR DE IT PT
+Multiple-card scanner,scanner,must,yes,yes,"Página completa" mode
+Option to show graded prices in the scanner,scanner,should,yes,partial,PSA 10 always shown; no on/off setting yet
+Reference market prices per card,prices,must,yes,yes,Cardmarket + TCGplayer
+Graded prices across PSA BGS CGC TAG and more,prices,should,yes,partial,PSA 10/9 only via PriceCharting token; other graders estimated
+Card database with search (40000+ cards),catalogue,must,yes,yes,pokemontcg.io + TCGdex
+Custom collections,collection,must,yes,yes,binders
+Portfolio that combines every collected card,portfolio,must,yes,yes,
+Value history from 7 days to 1 year,portfolio,must,yes,yes,local daily snapshots
+Set completion tracking,catalogue,must,yes,yes,owned / missing filter + missing value
+Track variants per card (normal holo reverse 1st edition),collection,should,yes,partial,variant stored per item; set view does not count variants separately
+Master sets (every variant of every card in a set),catalogue,should,yes,no,
+CSV import and export,data,should,yes,partial,CSV export + JSON import; no CSV import (third-party source)
+App UI in 17 languages,platform,should,yes,no,UI is Spanish only
+iPhone iPad and Mac,platform,could,yes,yes,responsive web works on all three
+Custom app icons,platform,could,yes,skip,a web app cannot change its installed icon
+Free tier (daily scans and card limit) + Pro weekly/annual/lifetime,business,could,yes,skip,monetisation is decided in replica-launch
+Wishlist,collection,could,no,yes,not confirmed in Acorn
+Sealed products,sealed,could,no,yes,not confirmed in Acorn
+AI page scan without a grid,scanner,could,no,yes,
