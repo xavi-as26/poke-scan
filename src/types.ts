@@ -17,13 +17,15 @@ export interface Card {
   types?: string[];
   artist?: string;
   hp?: string;
-  set: { id: string; name: string; series: string; printedTotal: number; total?: number; releaseDate: string; images?: { symbol: string; logo: string } };
+  set: { id: string; name: string; series: string; printedTotal: number; total?: number; releaseDate: string; rank?: number; images?: { symbol: string; logo: string } };
   images: { small: string; large: string };
   tcgplayer?: { url?: string; updatedAt?: string; prices?: Record<string, TcgPrice> };
   cardmarket?: { url?: string; updatedAt?: string; prices?: Record<string, number> };
 }
 export interface CardSet {
   id: string; name: string; series: string; printedTotal: number; total: number; releaseDate: string;
+  /** chronological position (higher = newer) when the source has no per-set date */
+  rank?: number;
   images: { symbol: string; logo: string };
 }
 

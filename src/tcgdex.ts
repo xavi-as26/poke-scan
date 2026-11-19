@@ -31,11 +31,14 @@ const splitTdId = (id: string) => ({ lang: id.slice(0, 2) as CatalogLang, id: id
 
 const img = (base?: string) => base
   ? { small: `${base}/low.webp`, large: `${base}/high.webp` }
-  : { small: './icon.svg', large: './icon.svg' };
+  : { small: './card-placeholder.svg', large: './card-placeholder.svg' };
 const asset = (base?: string) => base ? `${base}.png` : './icon.svg';
 
 // Set metadata cache per language: id -> set
 const setCache = new Map<CatalogLang, Promise<Map<string, CardSet>>>();
+// TCG Pocket is a digital game: its cards are not physical and have no market prices
+const EXCLUDED_SERIES = new Set(['tcgp']);
+const excludedSets = new Map<CatalogLang, Set<string>>();
 
 export function tdSets(lang: CatalogLang): Promise<Map<string, CardSet>> {
   let p = setCache.get(lang);
@@ -44,10 +47,17 @@ export function tdSets(lang: CatalogLang): Promise<Map<string, CardSet>> {
       const series = await get<TdSerie[]>(lang, '/series');
       const details = await Promise.all(series.map(s => get<TdSerie>(lang, `/series/${encodeURIComponent(s.id)}`).catch(() => s)));
       const m = new Map<string, CardSet>();
-      details.forEach(serie => (serie.sets ?? []).forEach(st => m.set(st.id, toSet(st, serie.name, serie.releaseDate))));
+      const skip = new Set<string>();
+      // /series is chronological and each series lists its sets in order: use that as the release order
+      let rank = 0;
+      details.forEach(serie => (serie.sets ?? []).forEach(st => {
+        if (EXCLUDED_SERIES.has(serie.id)) { skip.add(st.id); return; }
+        m.set(st.id, { ...toSet(st, serie.name, serie.releaseDate), rank: ++rank });
+      }));
+      excludedSets.set(lang, skip);
       // sets not reachable through a series still appear in /sets
       const all = await get<TdSetBrief[]>(lang, '/sets').catch(() => []);
-      all.forEach(st => { if (!m.has(st.id)) m.set(st.id, toSet(st, 'Otros')); });
+      all.forEach(st => { if (!m.has(st.id) && !skip.has(st.id)) m.set(st.id, { ...toSet(st, 'Otros'), rank: 0 }); });
       return m;
     })();
     p.catch(() => setCache.delete(lang));
@@ -82,7 +92,7 @@ function briefToCard(b: TdBrief, lang: CatalogLang, sets: Map<string, CardSet>):
 function fullToCard(c: TdCard, lang: CatalogLang, sets: Map<string, CardSet>): Card {
   const set = sets.get(c.set.id) ?? toSet(c.set, '');
   const card: Card = {
-    id: tdId(lang, c.id), lang, name: c.name, number: c.localId, rarity: c.rarity, artist: c.illustrator,
+    id: tdId(lang, c.id), lang, name: c.name, number: c.localId, rarity: c.rarity && c.rarity !== 'None' ? c.rarity : undefined, artist: c.illustrator,
     supertype: c.category, hp: c.hp?.toString(), types: c.types, set, images: img(c.image),
   };
   const cm = c.pricing?.cardmarket;
@@ -125,9 +135,13 @@ export async function tdSearch(lang: CatalogLang, o: { name?: string; number?: s
   if (o.name?.trim()) params.set('name', o.name.trim());
   if (o.number?.trim()) params.set('localId', o.number.trim());
   const briefs = await get<TdBrief[]>(lang, `/cards?${params}`);
-  const cards = briefs.map(b => briefToCard(b, lang, sets));
+  const skip = excludedSets.get(lang) ?? new Set<string>();
+  const cards = briefs
+    .filter(b => !skip.has(setIdOf(b.id)))
+    .map(b => briefToCard(b, lang, sets))
+    .sort((a, b) => (b.set.rank ?? 0) - (a.set.rank ?? 0)); // newest sets first within the page
   // TCGdex does not return a total; assume there is another page when this one is full
-  const more = briefs.length === (o.pageSize ?? 36);
+  const more = briefs.length === (o.pageSize ?? 36); // compare raw count: filtering may shorten a full page
   return { cards, total: ((o.page ?? 1) - 1) * (o.pageSize ?? 36) + cards.length + (more ? 1 : 0) };
 }
 
@@ -139,5 +153,5 @@ export async function tdCard(fullId: string): Promise<Card> {
 
 export async function tdSetList(lang: CatalogLang): Promise<CardSet[]> {
   const m = await tdSets(lang);
-  return [...m.values()].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  return [...m.values()].sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0));
 }

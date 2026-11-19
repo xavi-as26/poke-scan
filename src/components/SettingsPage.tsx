@@ -63,8 +63,6 @@ export function SettingsPage({ store }: { store: Store }) {
           <label>Fuente preferida<select value={settings.source} onChange={e => setSettings({ ...settings, source: e.target.value as 'cardmarket' | 'tcgplayer' })}>
             <option value="cardmarket">Cardmarket</option><option value="tcgplayer">TCGplayer</option></select></label>
         </div>
-        <label className="full">API key de pokemontcg.io (opcional, sube el límite de peticiones)
-          <input value={settings.apiKey ?? ''} onChange={e => setSettings({ ...settings, apiKey: e.target.value.trim() || undefined })} placeholder="xxxxxxxx-xxxx-…" /></label>
         <label className="full">Token de PriceCharting (opcional, para precios reales de PSA 10 y PSA 9)
           <input type="password" autoComplete="off" value={settings.pricechartingToken ?? ''} onChange={e => setSettings({ ...settings, pricechartingToken: e.target.value.trim() || undefined })} placeholder="token de la API" /></label>
         <p className="hint">Sin token, el valor de PSA 10 es una estimación (precio sin gradear × 4). El token es de pago en pricecharting.com y se guarda solo en este navegador.</p>
@@ -98,7 +96,7 @@ export function SettingsPage({ store }: { store: Store }) {
         </div>
         {msg && <p className="hint">{msg}</p>}
       </section>
-      <p className="muted small center">PokeScan es una app no oficial, sin relación con Nintendo, Creatures, GAME FREAK ni The Pokémon Company. Datos de cartas: pokemontcg.io.</p>
+      <p className="muted small center">PokeScan es una app no oficial, sin relación con Nintendo, Creatures, GAME FREAK ni The Pokémon Company. Datos de cartas y precios: TCGdex (tcgdex.dev).</p>
     </div>
   );
 }

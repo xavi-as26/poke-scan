@@ -75,7 +75,7 @@ export function CardModal({ card: initialCard, store, onClose, editing }: { card
             <div className="detail-head">
               <div>
                 <h2>{card.name}</h2>
-                <div className="muted">{card.set.name} · #{card.number}/{card.set.printedTotal} · {card.rarity ?? '—'}</div>
+                <div className="muted">{[card.set.name, `#${card.number}${card.set.printedTotal ? `/${card.set.printedTotal}` : ''}`, card.rarity].filter(Boolean).join(' · ')}</div>
                 {card.artist && <div className="muted small">Ilustración: {card.artist}</div>}
               </div>
               <button className={`chip ${wished ? 'on' : ''}`} onClick={() => store.toggleWish(card)}>{wished ? '★ En deseos' : '☆ Deseos'}</button>
