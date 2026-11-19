@@ -169,7 +169,12 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
         candidates: [], pick: 0, selected: false, pending: true,
       }));
       setFound([...out]);
-      await pool(reads, 4, r => match(r).catch(() => [] as Card[]), (candidates, i) => {
+      await pool(reads, 4, async r => {
+        const cs = await match(r).catch(() => [] as Card[]);
+        // price the best match straight away (search results come without prices)
+        if (cs[0]?.partial) cs[0] = (await getCard(cs[0].id)) ?? cs[0];
+        return cs;
+      }, (candidates, i) => {
         out[i] = { ...out[i], candidates, selected: candidates.length > 0, pending: false };
         setFound([...out]);
       });
@@ -292,7 +297,11 @@ export function Scanner({ store, onOpen, goSettings }: { store: Store; onOpen: (
                       <b>{c.name}</b>
                       <div className="muted small">{c.set.name} · {c.number}{c.set.printedTotal ? `/${c.set.printedTotal}` : ''}</div>
                       {f.candidates.length > 1 && (
-                        <select aria-label="Otras coincidencias" value={f.pick} onChange={e => update(f.key, { pick: +e.target.value })}>
+                        <select aria-label="Otras coincidencias" value={f.pick} onChange={async e => {
+                          const k = +e.target.value; update(f.key, { pick: k });
+                          const cand = f.candidates[k];
+                          if (cand?.partial) { const full = await getCard(cand.id); if (full) update(f.key, { candidates: f.candidates.map((x, j) => j === k ? full : x), pick: k }); }
+                        }}>
                           {f.candidates.map((o, k) => <option key={o.id} value={k}>{o.name} — {o.set.name} {o.number}</option>)}
                         </select>
                       )}
